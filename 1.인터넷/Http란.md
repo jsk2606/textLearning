@@ -17,5 +17,5 @@ html, json, xml 등의 데이터 형태로 통신한다. 예를들자면
 
 특징
 --
-1. URI(www.naver.com)  
+1. URI(https://github.com/jsk2606/textLearning/blob/main/1.%EC%9D%B8%ED%84%B0%EB%84%B7/http/URI.md)  
 길을 찾을 때 목적지에 도착하려면 주소가 필요하다. 브라우저에서 서버라는 곳의 주소를 찾기 위한 프로토콜
