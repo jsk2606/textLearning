@@ -17,5 +17,5 @@ html, json, xml 등의 데이터 형태로 통신한다. 예를들자면
 
 특징
 --
-1. URI(https://github.com/jsk2606/textLearning/blob/main/1.%EC%9D%B8%ED%84%B0%EB%84%B7/http/URI.md)  
+[HTTP완벽가이드 정리](https://github.com/jsk2606/The-Definitive-Guide-Http)
 
