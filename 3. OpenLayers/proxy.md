@@ -34,9 +34,9 @@ https://openlayers.org/en/latest/examples/accessible.html)
 * Tile 은 지도 리소스의 종류이고  
 * TileWMS 는 타일의 한 종류로서 리소스에 대한 정보를 입력한다.  
 ***  
-추가적으로 ol.source.XYZ 오브젝트에 tilUrlFunction 이라는 키값으로 이벤트를 설정할수있는데  
-설정 시 이 메서드가 return 하는 URL로 리소스를 호출한다.  
-또한 파라미터를 하나 받는데 여기엔 WTMS 타입의 지도를 요청하는 [Z, X, Y] 값이 들어있다.   
+추가적으로 ol.source.XYZ 오브젝트에 tilUrlFunction 이라는 키값으로 URL 을 String 으로 return 하는 이벤트를 설정할수있는데  
+설정 시 이 이벤트가 return 하는 URL 로 리소스를 호출한다.  
+또한 파라미터를 하나 받는데 여기엔 WMTS 타입의 지도를 요청하는 [Z, X, Y] 값이 들어있다.   
 ***  
 정리하면 Map 는 선언시 렌더링되고, View에 의해 입력이 감지될시 렌더링되는데    
 렌더링 될 때마다 TileWMS에 입력된 값을 기준으로 몇몇 파라미터들을 바꿔가며 Http Get 메서드를 이용하여 
@@ -47,9 +47,9 @@ https://openlayers.org/en/latest/examples/accessible.html)
 ```javascript
 new ol.layer.Tile(
 	source: new ol.source.XYZ({
-		tileUrlFunction: function(coordinate) {
-            url = "/proxy.do" + "&z=" + coordinate[0] + "&x=" + coordinate[1] + "&y=" + coordinate[2];
-			return url;
+	    tileUrlFunction: function(coordinate) {
+                url = "/proxy.do" + "&z=" + coordinate[0] + "&x=" + coordinate[1] + "&y=" + coordinate[2];
+                    return url;
 		},
 		type : 'image/png',
 		tileSize: new ol.size.toSize([256,256]),
