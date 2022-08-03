@@ -31,24 +31,25 @@ https://openlayers.org/en/latest/examples/accessible.html)
 * ol 은 OpenLayers 최상위 오브젝트이다. ol 에 속한 오브젝트들은 다음과 같다.  
 * Map 는 Html에 지도를 렌더링하는 오브젝트이다.  
 * View 는 Map에 입력을 제어하는 오브젝트이다.  
-* Tile 은 지도 리소스의 종류이고  
-* TileWMS 는 타일의 한 종류로서 리소스에 대한 정보를 입력한다.  
+* Tile 은 지도의 리소스의 종류이고  
+* source 는 타일의 종류로서 리소스에 대한 정보를 입력한다.  나는 WMS와 WMTS 종류의 source를 다루었다.  
+  
+정리하면 Map 는 선언시 렌더링되고, View에 의해 입력이 감지될시 렌더링되는데  
+렌더링 될 때마다 source에 입력된 값을 기준으로 몇몇 파라미터들을 바꿔가며  
+Http Get 메서드를 이용하여 리소스를 요청한다.
 ***  
-추가적으로 ol.source.XYZ 오브젝트에 tilUrlFunction 이라는 키값으로 URL 을 String 으로 return 하는 이벤트를 설정할수있는데  
-설정 시 이 이벤트가 return 하는 URL 로 리소스를 호출한다.  
+추가적으로 ol.source.XYZ 오브젝트에 tilUrlFunction 이라는  
+키값으로 URL 을 String 으로 return 하는 이벤트를 설정할수있는데 설정 시 이 이벤트가 return 하는 URL 로 리소스를 호출한다. 
 또한 파라미터를 하나 받는데 여기엔 WMTS 타입의 지도를 요청하는 [Z, X, Y] 값이 들어있다.   
-***  
-정리하면 Map 는 선언시 렌더링되고, View에 의해 입력이 감지될시 렌더링되는데    
-렌더링 될 때마다 TileWMS에 입력된 값을 기준으로 몇몇 파라미터들을 바꿔가며 Http Get 메서드를 이용하여 
-지도서버에 리소스를 요청한다.  
+***   
 
-3. 해결방안  
-* tilUrlFunction 메서드 파라미터를 proxy 도메인에 전달. 
+3. 구현 코드
+* WMTS 지도리소스에 대한 자바스크립트 
 ```javascript
 new ol.layer.Tile(
 	source: new ol.source.XYZ({
 	    tileUrlFunction: function(coordinate) {
-                url = "/proxy.do" + "&z=" + coordinate[0] + "&x=" + coordinate[1] + "&y=" + coordinate[2];
+                url = "/proxy.do?sourceType=WMTS" + "&z=" + coordinate[0] + "&x=" + coordinate[1] + "&y=" + coordinate[2];
                     return url;
 		},
 		type : 'image/png',
@@ -58,36 +59,99 @@ new ol.layer.Tile(
 	,crossOrigin : 'anonymous'
 )
 ```
-* 백엔드에서 전달받은 파라미터로 지도서버로 요청 하고, 다시 응답
- ```java
+* WMS 지도리소스에 대한 자바스크립트
+```javascript
+wmsSourceSatel = new ol.source.TileWMS({
+    url         : '/proxy.do?sourceType=WMS',
+    params      : {'LAYERS' : 'mois:mois_law_area'},
+    serverType  : 'geoserver',
+    crossOrigin : 'anonymous',
+    projection  : 'EPSG:4326'
+});
+```
+* 프록시 기능 자바
+```java
 @RequestMapping(value="/proxy.do")
-public void proxy(HttpServletRequest request, HttpServletResponse response, @RequestParam Map<String, Object> param){
-	
-	OutputStream out = null;
-	InputStream is = null;
-	String z = param.get('z');
-	String x = param.get('z');
-	String y = param.get('z');
-	try {
-		URL url = new URL("http://지도서버아이피:포트/geoserver/지도경로/"+z+"/"+x+"/"+y+".png");
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setConnectTimeout(3000);
-		connection.setRequestMethod("GET");
-		connection.setRequestProperty("Content-Type", "image/png");
-		connection.setDoOutput(true);
-		is = connection.getInputStream();
-		out = response.getOutputStream();
-		byte[] buf = new byte[1024];
-		
-		response.setHeader("content-type", "image/png");
+public void proxy(HttpServletRequest request, HttpServletResponse response, @RequestParam Map<String, String> param){
 
-		int byteRead;
-		while((byteRead = is.read(buf)) != -1) {
-			out.write(buf, 0, byteRead);
-		}
-	}catch (Exception e) {
-		// TODO: handle exception
-	}
+    OutputStream out = null;
+    InputStream is = null;
+
+    try {
+
+        String type = "";
+        if(request.getHeader("accept").indexOf("image") == -1)
+            type = "text/plain";
+        else
+            type = "image/png";
+        param.put("type", type);
+
+        URL url = null;
+        if("WMS".equals(param.get("sourceType")))
+            url = getWMSProxyUrl(param);
+        if("WMS".equals(param.get("sourceType")))
+            url = getWMTSProxyUrl(param);
+        is          = proxyConnction(param, url);
+        out         = response.getOutputStream();
+        byte[] buf  = new byte[1024];
+
+        response.setHeader("content-type", type);
+
+        int byteRead;
+        while((byteRead = is.read(buf)) != -1) {
+            out.write(buf, 0, byteRead);
+        }
+    }catch (Exception e) {
+        logger.error(e.toString());
+    }
 	
 }
+
+public URL getWMSProxyUrl(Map<String, String> param) throws Exception{
+
+    String urlStr = "WMS 리소스 경로"+"?temp=";
+    try {
+
+        Iterator<String> keys = param.keySet().iterator();
+        while( keys.hasNext() ){
+        String strKey   = keys.next();
+        String strValue = param.get(strKey);
+        if(!StringUtils.isEmpty(strValue))
+            urlStr += "&" + strKey + "=" + URLEncoder.encode(strValue);
+        }
+    } catch (Exception e) {
+        logger.error(e.toString());
+    }
+    return new URL(urlStr);
+}
+
+public URL getWMTSProxyUrl(Map<String, String> param) throws Exception{
+
+    String urlStr = "WMTS 리소스 경로";
+    try {
+
+        urlStr += "/" + param.get("z");
+        urlStr += "/" + param.get("x");
+        urlStr += "/" + param.get("y");
+        urlStr += ".png";
+    } catch (Exception e) {
+        logger.error(e.toString());
+    }
+    return new URL(urlStr);
+}
+
+public InputStream proxyConnction(Map<String, String> param, URL url) throws Exception{
+
+    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    connection.setConnectTimeout(3000);
+    connection.setRequestMethod("GET");
+    connection.setRequestProperty("Content-Type", param.get("type"));
+    connection.setDoOutput(true);
+    if(null != param.get("referer"))
+        connection.setRequestProperty("Referer", param.get("referer"));
+
+    return connection.getInputStream();
+}
 ```
+추가적으로 proxy 메서드에서 request로 부터 헤더에서 accept 라는 값을 가져오는 이유는  
+WMS 방식은 타일안에 정보를 문자열로 응답해주는 기능도 지원하기 때문이다. 
