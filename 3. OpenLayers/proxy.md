@@ -61,12 +61,11 @@ new ol.layer.Tile(
 ```
 * WMS 지도리소스에 대한 자바스크립트
 ```javascript
-wmsSourceSatel = new ol.source.TileWMS({
+new ol.source.TileWMS({
     url         : '/proxy.do?sourceType=WMS',
-    params      : {'LAYERS' : 'mois:mois_law_area'},
+    params      : {'LAYERS' : '레이어명'},
     serverType  : 'geoserver',
-    crossOrigin : 'anonymous',
-    projection  : 'EPSG:4326'
+    crossOrigin : 'anonymous'
 });
 ```
 * 프록시 기능 자바
