@@ -88,7 +88,7 @@ public void proxy(HttpServletRequest request, HttpServletResponse response, @Req
         URL url = null;
         if("WMS".equals(param.get("sourceType")))
             url = getWMSProxyUrl(param);
-        if("WMS".equals(param.get("sourceType")))
+        if("WMTS".equals(param.get("sourceType")))
             url = getWMTSProxyUrl(param);
         is          = proxyConnction(param, url);
         out         = response.getOutputStream();
